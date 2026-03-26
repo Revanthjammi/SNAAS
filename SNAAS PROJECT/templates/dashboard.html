@@ -1,0 +1,859 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Network Security Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #ed8936;
+            --info: #4299e1;
+            --dark: #2d3748;
+            --light: #f7fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        /* Navbar Styles */
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-link {
+            color: var(--dark) !important;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 0 5px;
+            border-radius: 10px;
+            padding: 8px 15px !important;
+        }
+        
+        .nav-link:hover {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white !important;
+            transform: translateY(-2px);
+        }
+        
+        /* Welcome Section */
+        .welcome-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .welcome-text h2 {
+            font-size: 1.8rem;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .welcome-text p {
+            color: #718096;
+            margin-bottom: 0;
+        }
+        
+        .date-time {
+            text-align: right;
+            color: #718096;
+        }
+        
+        /* Stats Cards */
+        .stats-container {
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.5s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card p {
+            color: #718096;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        
+        .stat-trend {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        /* Chart Cards */
+        .chart-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            animation: fadeInUp 0.5s ease-out;
+            animation-delay: 0.4s;
+            animation-fill-mode: both;
+        }
+        
+        .chart-card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .chart-header h5 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 600;
+        }
+        
+        .chart-header i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        canvas {
+            max-height: 300px;
+        }
+        
+        /* Analysis Table */
+        .analysis-section {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            animation: fadeInUp 0.5s ease-out;
+            animation-delay: 0.5s;
+            animation-fill-mode: both;
+        }
+        
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .section-title h4 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 600;
+        }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            transition: all 0.3s;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background: #f7fafc;
+            border: none;
+            color: var(--dark);
+            font-weight: 600;
+            padding: 1rem;
+        }
+        
+        .table tbody tr {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .table tbody tr:hover {
+            background: #f7fafc;
+            transform: scale(1.01);
+        }
+        
+        .badge-threat {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .badge-threat.high {
+            background: linear-gradient(135deg, #f56565, #ed64a6);
+            color: white;
+        }
+        
+        .badge-threat.medium {
+            background: linear-gradient(135deg, #ed8936, #fbb6ce);
+            color: white;
+        }
+        
+        .badge-threat.low {
+            background: linear-gradient(135deg, #48bb78, #9ae6b4);
+            color: white;
+        }
+        
+        .btn-action {
+            padding: 5px 12px;
+            margin: 0 3px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h5 {
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+            color: #718096;
+        }
+        
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+            z-index: 1000;
+            text-decoration: none;
+        }
+        
+        .fab:hover {
+            transform: scale(1.1) rotate(90deg);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stat-card {
+                margin-bottom: 1rem;
+            }
+            
+            .welcome-text {
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+            
+            .date-time {
+                text-align: center;
+            }
+            
+            .section-title {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .btn-upload {
+                width: 100%;
+            }
+        }
+        
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Progress Bar */
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background: #e2e8f0;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: white;
+            padding: 1.5rem;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+            margin-top: 2rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast align-items-center text-white bg-{{ 'danger' if category == 'error' else category }} border-0 show" role="alert">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' }} me-2"></i>
+                                {{ message }}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-shield-alt me-2"></i>
+                NetSec Analyzer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('upload') }}">
+                            <i class="fas fa-upload me-1"></i> Upload PCAP
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-1"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="row align-items-center">
+                <div class="col-md-8 welcome-text">
+                    <h2>
+                        <i class="fas fa-user-circle me-2" style="color: var(--primary);"></i>
+                        Welcome back, {{ current_user.username }}!
+                    </h2>
+                    <p>Ready to analyze network traffic and detect security threats?</p>
+                </div>
+                <div class="col-md-4 date-time">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <span id="currentDate"></span>
+                    <br>
+                    <i class="fas fa-clock me-2"></i>
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="stats-container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea20, #764ba220);">
+                            <i class="fas fa-file-alt" style="color: var(--primary);"></i>
+                        </div>
+                        <h3 id="totalAnalyses">{{ analyses|length }}</h3>
+                        <p>Total Analyses</p>
+                        <div class="stat-trend">
+                            <i class="fas fa-chart-line"></i> All time
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #48bb7820, #9ae6b420);">
+                            <i class="fas fa-bug" style="color: var(--success);"></i>
+                        </div>
+                        <h3 id="totalThreats">{{ analyses|sum(attribute='threats_detected') }}</h3>
+                        <p>Threats Detected</p>
+                        <div class="stat-trend">
+                            <i class="fas fa-exclamation-triangle"></i> Security alerts
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4299e120, #9ae6b420);">
+                            <i class="fas fa-network-wired" style="color: var(--info);"></i>
+                        </div>
+                        <h3 id="totalPackets">{{ analyses|sum(attribute='packet_count') }}</h3>
+                        <p>Packets Analyzed</p>
+                        <div class="stat-trend">
+                            <i class="fas fa-chart-bar"></i> Total traffic
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5><i class="fas fa-chart-pie me-2"></i> Threat Distribution</h5>
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <canvas id="threatChart"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5><i class="fas fa-chart-line me-2"></i> Analysis Trend</h5>
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Analyses Section -->
+        <div class="analysis-section">
+            <div class="section-title">
+                <h4>
+                    <i class="fas fa-history me-2" style="color: var(--primary);"></i>
+                    Recent Analyses
+                </h4>
+                <a href="{{ url_for('upload') }}" class="btn btn-upload">
+                    <i class="fas fa-plus-circle me-2"></i> New Analysis
+                </a>
+            </div>
+            
+            {% if analyses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-file me-1"></i> Filename</th>
+                            <th><i class="fas fa-calendar me-1"></i> Upload Date</th>
+                            <th><i class="fas fa-chart-bar me-1"></i> Packets</th>
+                            <th><i class="fas fa-bug me-1"></i> Threats</th>
+                            <th><i class="fas fa-chart-line me-1"></i> Status</th>
+                            <th><i class="fas fa-cog me-1"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analysis in analyses %}
+                        <tr onclick="window.location='{{ url_for('analyze', analysis_id=analysis.id) }}'">
+                            <td>
+                                <i class="fas fa-file-pdf me-2" style="color: var(--primary);"></i>
+                                {{ analysis.filename[:30] }}{% if analysis.filename|length > 30 %}...{% endif %}
+                            </td>
+                            <td>
+                                <i class="far fa-calendar-alt me-1"></i>
+                                {{ analysis.upload_time.strftime('%Y-%m-%d') }}
+                                <br>
+                                <small class="text-muted">{{ analysis.upload_time.strftime('%H:%M') }}</small>
+                            </td>
+                            <td>
+                                <i class="fas fa-chart-bar me-1"></i>
+                                {{ "{:,}".format(analysis.packet_count) }}
+                            </td>
+                            <td>
+                                {% if analysis.threats_detected > 0 %}
+                                    <span class="badge-threat {% if analysis.threats_detected > 5 %}high{% elif analysis.threats_detected > 2 %}medium{% else %}low{% endif %}">
+                                        <i class="fas fa-{% if analysis.threats_detected > 5 %}exclamation-triangle{% elif analysis.threats_detected > 2 %}warning{% else %}info-circle{% endif %} me-1"></i>
+                                        {{ analysis.threats_detected }} threats
+                                    </span>
+                                {% else %}
+                                    <span class="badge-threat low">
+                                        <i class="fas fa-check-circle me-1"></i> Clean
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set threat_percentage = (analysis.threats_detected / analysis.packet_count * 100) if analysis.packet_count > 0 else 0 %}
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" 
+                                         style="width: {{ threat_percentage }}%"
+                                         aria-valuenow="{{ threat_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ "%.2f"|format(threat_percentage) }}% threats</small>
+                            </td>
+                            <td onclick="event.stopPropagation()">
+                                <a href="{{ url_for('analyze', analysis_id=analysis.id) }}" class="btn btn-sm btn-action btn-primary">
+                                    <i class="fas fa-chart-line"></i> Analyze
+                                </a>
+                                <a href="{{ url_for('generate_report', analysis_id=analysis.id) }}" class="btn btn-sm btn-action btn-success">
+                                    <i class="fas fa-file-pdf"></i> Report
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <h5>No analyses yet</h5>
+                <p>Upload your first PCAP file to start analyzing network traffic</p>
+                <a href="{{ url_for('upload') }}" class="btn btn-upload mt-3">
+                    <i class="fas fa-upload me-2"></i> Upload PCAP File
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Quick Tips Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h5><i class="fas fa-lightbulb me-2"></i> Pro Tips</h5>
+                        <i class="fas fa-lightbulb" style="color: var(--warning);"></i>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-line fa-2x" style="color: var(--primary);"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Monitor Traffic Patterns</h6>
+                                    <p class="small text-muted">Regular analysis helps identify unusual traffic patterns early.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-shield-alt fa-2x" style="color: var(--success);"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>ARP Spoofing Detection</h6>
+                                    <p class="small text-muted">Watch for duplicate ARP replies - a common attack indicator.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-pie fa-2x" style="color: var(--info);"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Protocol Analysis</h6>
+                                    <p class="small text-muted">Unexpected protocol usage can indicate malicious activity.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Action Button -->
+    <a href="{{ url_for('upload') }}" class="fab">
+        <i class="fas fa-plus"></i>
+    </a>
+    
+    <div class="footer">
+        <div class="container">
+            <p class="mb-0">
+                <i class="fas fa-shield-alt me-2"></i>
+                Network Security Analysis Tool | Educational Purpose Only
+                <br>
+                <small class="text-muted">© 2024 - Safe, Read-Only Packet Analysis Platform</small>
+            </p>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            
+            document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, dateOptions);
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString(undefined, timeOptions);
+        }
+        
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            // Threat Distribution Chart
+            const threatCtx = document.getElementById('threatChart').getContext('2d');
+            const threatData = {
+                labels: ['High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: [
+                        'rgba(245, 101, 101, 0.8)',
+                        'rgba(237, 137, 54, 0.8)',
+                        'rgba(72, 187, 120, 0.8)'
+                    ],
+                    borderWidth: 0
+                }]
+            };
+            
+            // Calculate threat distribution from actual data
+            {% if analyses %}
+                let highThreats = 0;
+                let mediumThreats = 0;
+                let lowThreats = 0;
+                
+                {% for analysis in analyses %}
+                    {% for threat in analysis.analysis_results|default('[]')|from_json %}
+                        {% if threat.severity == 'High' %}highThreats++;{% endif %}
+                        {% if threat.severity == 'Medium' %}mediumThreats++;{% endif %}
+                        {% if threat.severity == 'Low' %}lowThreats++;{% endif %}
+                    {% endfor %}
+                {% endfor %}
+                
+                threatData.datasets[0].data = [highThreats, mediumThreats, lowThreats];
+            {% endif %}
+            
+            new Chart(threatCtx, {
+                type: 'doughnut',
+                data: threatData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            const trendData = {
+                labels: [],
+                datasets: [{
+                    label: 'Threats Detected',
+                    data: [],
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Packets Analyzed',
+                    data: [],
+                    borderColor: 'rgba(72, 187, 120, 1)',
+                    backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+            
+            {% if analyses %}
+                {% for analysis in analyses|reverse %}
+                    trendData.labels.push('{{ analysis.upload_time.strftime("%m/%d") }}');
+                    trendData.datasets[0].data.push({{ analysis.threats_detected }});
+                    trendData.datasets[1].data.push({{ analysis.packet_count }});
+                {% endfor %}
+            {% endif %}
+            
+            new Chart(trendCtx, {
+                type: 'line',
+                data: trendData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Auto-hide toasts after 5 seconds
+        document.querySelectorAll('.toast').forEach(toast => {
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        });
+        
+        // Add animation to stat cards
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>

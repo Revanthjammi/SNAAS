@@ -1,0 +1,520 @@
+<!-- templates/analyze.html - Modern UI with enhanced visualizations -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Network Security Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            --danger-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        body {
+            background: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: var(--primary-gradient) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card {
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card .card-body {
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+        }
+        
+        .stat-icon {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: white;
+            border-bottom: 2px solid #f0f0f0;
+            padding: 1rem 1.5rem;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .threat-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .badge-high {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .badge-medium {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .badge-low {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        
+        .protocol-badge {
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-weight: 500;
+            margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .protocol-badge i {
+            font-size: 1.1rem;
+        }
+        
+        .btn-gradient {
+            background: var(--primary-gradient);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            color: white;
+            transition: transform 0.3s;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .progress-bar-custom {
+            background: var(--primary-gradient);
+        }
+        
+        .footer {
+            background: white;
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-shield-alt me-2"></i> Network Security Analysis
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                </a>
+                <a class="nav-link" href="{{ url_for('generate_report', analysis_id=analysis.id) }}">
+                    <i class="fas fa-file-pdf me-1"></i> Generate Report
+                </a>
+                <a class="nav-link" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-1"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="mb-2">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            Analysis Results: {{ analysis.filename }}
+                        </h3>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-calendar-alt me-1"></i> {{ analysis.upload_time.strftime('%B %d, %Y at %H:%M') }}
+                            <i class="fas fa-hashtag ms-3 me-1"></i> Analysis ID: {{ analysis.id }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-primary text-white">
+                    <div class="card-body">
+                        <i class="fas fa-network-wired stat-icon"></i>
+                        <h6 class="stat-label">Total Packets</h6>
+                        <h2 class="stat-value">{{ "{:,}".format(packet_count) }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-danger text-white">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-triangle stat-icon"></i>
+                        <h6 class="stat-label">Threats Detected</h6>
+                        <h2 class="stat-value">{{ threats|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-success text-white">
+                    <div class="card-body">
+                        <i class="fas fa-chart-pie stat-icon"></i>
+                        <h6 class="stat-label">Protocol Types</h6>
+                        <h2 class="stat-value">{{ protocol_stats|length }}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-info text-white">
+                    <div class="card-body">
+                        <i class="fas fa-microchip stat-icon"></i>
+                        <h6 class="stat-label">Unique IPs</h6>
+                        <h2 class="stat-value">{{ stats.get('ip_stats', {})|length }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Protocol Distribution Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2 text-primary"></i>
+                Protocol Distribution Analysis
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div id="protocol-pie-chart"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div id="protocol-bar-chart"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Protocol Summary Table -->
+                <div class="mt-3">
+                    <h6 class="mb-3">Protocol Summary</h6>
+                    <div class="row">
+                        {% for protocol, count in protocol_stats.items() %}
+                        <div class="col-md-4 mb-2">
+                            <div class="protocol-badge" style="background: {% if protocol == 'TCP' %}linear-gradient(135deg, #667eea 0%, #764ba2 100%){% elif protocol == 'UDP' %}linear-gradient(135deg, #f093fb 0%, #f5576c 100%){% elif protocol == 'ARP' %}linear-gradient(135deg, #4facfe 0%, #00f2fe 100%){% elif protocol == 'DNS' %}linear-gradient(135deg, #43e97b 0%, #38f9d7 100%){% elif protocol == 'ICMP' %}linear-gradient(135deg, #fa709a 0%, #fee140 100%){% else %}linear-gradient(135deg, #a8edea 0%, #fed6e3 100%){% endif %}; color: white;">
+                                <i class="fas fa-{% if protocol == 'TCP' %}network-wired{% elif protocol == 'UDP' %}envelope{% elif protocol == 'ARP' %}ethernet{% elif protocol == 'DNS' %}globe{% elif protocol == 'ICMP' %}bell{% else %}question-circle{% endif %}"></i>
+                                <strong>{{ protocol }}</strong>
+                                <span class="badge bg-light text-dark ms-2">{{ "{:,}".format(count) }}</span>
+                                <small class="ms-2">{{ "%.1f"|format(count / packet_count * 100 if packet_count > 0 else 0) }}%</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Visualizations -->
+        <div class="row mb-4">
+            {% if visualizations.timeline %}
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                        Packet Timeline Analysis
+                    </div>
+                    <div class="card-body">
+                        <div id="timeline-chart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="row mb-4">
+            {% if visualizations.top_talkers %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-users me-2 text-primary"></i>
+                        Top Network Talkers
+                    </div>
+                    <div class="card-body">
+                        <div id="top-talkers-chart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if visualizations.top_ports %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-plug me-2 text-primary"></i>
+                        Top Ports Activity
+                    </div>
+                    <div class="card-body">
+                        <div id="top-ports-chart" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Threats Table -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-bug me-2 text-danger"></i>
+                Detected Security Threats
+                {% if threats|length > 0 %}
+                <span class="badge bg-danger ms-2">{{ threats|length }} threats found</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="fas fa-flag me-1"></i> Severity</th>
+                                <th><i class="fas fa-bug me-1"></i> Threat Type</th>
+                                <th><i class="fas fa-info-circle me-1"></i> Description</th>
+                                <th><i class="fas fa-info-circle me-1"></i> Packet Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for threat in threats %}
+                            <tr>
+                                <td>
+                                    <span class="badge {% if threat.severity == 'High' %}badge-high{% elif threat.severity == 'Medium' %}badge-medium{% else %}badge-low{% endif %}">
+                                        <i class="fas fa-{% if threat.severity == 'High' %}exclamation-circle{% elif threat.severity == 'Medium' %}warning{% else %}info-circle{% endif %} me-1"></i>
+                                        {{ threat.severity }}
+                                    </span>
+                                </td>
+                                <td><strong>{{ threat.threat_type }}</strong></td>
+                                <td>{{ threat.description }}</td>
+                                <td><small class="text-muted">{{ threat.packet_info }}</small></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                                    <p class="mb-0">No threats detected in this analysis. The network traffic appears clean!</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top IPs Table -->
+        {% if stats.top_talkers %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                Top 10 Network Communicators
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th><i class="fas fa-network-wired me-1"></i> IP Address</th>
+                                <th><i class="fas fa-arrow-up me-1"></i> Packets Sent</th>
+                                <th><i class="fas fa-arrow-down me-1"></i> Packets Received</th>
+                                <th><i class="fas fa-exchange-alt me-1"></i> Total Traffic</th>
+                                <th><i class="fas fa-chart-line me-1"></i> Activity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for talker in stats.top_talkers[:10] %}
+                            <tr>
+                                <td><code>{{ talker.ip }}</code></td>
+                                <td>{{ "{:,}".format(talker.sent) }}</td>
+                                <td>{{ "{:,}".format(talker.received) }}</td>
+                                <td><strong>{{ "{:,}".format(talker.sent + talker.received) }}</strong></td>
+                                <td>
+                                    {% set total = talker.sent + talker.received %}
+                                    {% set max_total = stats.top_talkers[0].sent + stats.top_talkers[0].received if stats.top_talkers else 1 %}
+                                    {% set percentage = (total / max_total * 100) if max_total > 0 else 0 %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-custom" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ "%.1f"|format(percentage) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Information Alert -->
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Analysis Note:</strong> All detections are based on observable packet artifacts. This is an educational tool for understanding network security concepts. No live attacks are performed.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+    
+    <div class="footer text-center">
+        <div class="container">
+            <p class="mb-0 text-muted">
+                <i class="fas fa-shield-alt me-1"></i> Network Security Analysis Tool | Educational Purpose Only
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Protocol Pie Chart
+        var protoPieData = {{ visualizations.protocol_pie|safe if visualizations.protocol_pie else '{}' }};
+        if (Object.keys(protoPieData).length > 0) {
+            Plotly.newPlot('protocol-pie-chart', [protoPieData], {
+                title: 'Protocol Distribution (Pie Chart)',
+                height: 400,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            });
+        }
+        
+        // Protocol Bar Chart
+        var protoBarData = {{ visualizations.protocol_bar|safe if visualizations.protocol_bar else '{}' }};
+        if (Object.keys(protoBarData).length > 0) {
+            Plotly.newPlot('protocol-bar-chart', [protoBarData], {
+                title: 'Protocol Distribution (Bar Chart)',
+                height: 400,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                xaxis: {title: 'Protocol'},
+                yaxis: {title: 'Packet Count'}
+            });
+        }
+        
+        // Timeline Chart
+        {% if visualizations.timeline %}
+        var timelineData = {{ visualizations.timeline|safe }};
+        Plotly.newPlot('timeline-chart', [timelineData], {
+            title: 'Packet Timeline - Size vs Time',
+            xaxis: {title: 'Time (seconds)'},
+            yaxis: {title: 'Packet Size (bytes)'},
+            height: 400,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        });
+        {% endif %}
+        
+        // Top Talkers Chart
+        {% if visualizations.top_talkers %}
+        var topTalkersData = {{ visualizations.top_talkers|safe }};
+        Plotly.newPlot('top-talkers-chart', [topTalkersData], {
+            title: 'Top 5 Network Talkers',
+            xaxis: {title: 'IP Address'},
+            yaxis: {title: 'Total Packets'},
+            height: 400,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        });
+        {% endif %}
+        
+        // Top Ports Chart
+        {% if visualizations.top_ports %}
+        var topPortsData = {{ visualizations.top_ports|safe }};
+        Plotly.newPlot('top-ports-chart', [topPortsData], {
+            title: 'Top 10 Active Ports',
+            xaxis: {title: 'Port', tickangle: -45},
+            yaxis: {title: 'Packet Count'},
+            height: 400,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        });
+        {% endif %}
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
